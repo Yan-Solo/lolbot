@@ -1,0 +1,12 @@
+---
+debug: false
+discordWebhookUrl: $DISCORD_WEBHOOK_TOKEN
+riotApiToken: $RIOT_API_TOKEN
+queues:
+  - &solo RANKED_SOLO_5x5
+  - &flex RANKED_FLEX_SR
+monitored_players:
+  # SoloQ
+  - discordMessageName: 'Friend 1'
+    queue: *solo
+    summonerId: $SUMMONERID
