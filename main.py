@@ -7,12 +7,14 @@ import schedule
 import sys
 import time
 import yaml
+import os
 
 from pprint import pprint
-
+# Local imports
+from enums import Enums
+from core import Core
 
 Vdebug = False
-
 
 def debug(valname, val):
     global Vdebug
@@ -43,18 +45,22 @@ def load_config():
 
 
 def writeRankToFile(rank, queue, summonerId):
-    with open(f"/tmp/{summonerId}.{queue}.rank", "w") as file:
+    path = Core.os_join("tmp",f"{summonerId}.{queue}.rank")
+    with open(path, encoding="utf-8", mode="w") as file:
         file.write(rank)
+        print("Path:", file.name)
 
 
 def readRankFromFile(summonerId, queue):
+    path = Core.os_join("tmp",f"{summonerId}.{queue}.rank")
     try:
-        with open(f"/tmp/{summonerId}.{queue}.rank", "r") as file:
+        with open(path, encoding="utf-8", mode="r") as file:
             jsonData = json.loads(file.read())
             return jsonData
     except FileNotFoundError:
         print(f"The rank file for {summonerId}.{queue} doesn't exist yet")
-        return None
+        os.makedirs(path)
+        return readRankFromFile(summonerId, queue)
 
 
 def postToDiscord(discordMessageName, rank, lpDifference):
@@ -142,11 +148,10 @@ def main(monitored_players):
             print(f"No changes for {discordMessageName} "
                   f"or file wasn't present")
 
-
 config = load_config()
 riotApiToken = config['riotApiToken']
 
-schedule.every(1).minutes.do(main, config['monitored_players'])
+schedule.every(3).seconds.do(main, config['monitored_players'])
 
 while True:
     schedule.run_pending()
