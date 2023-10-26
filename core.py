@@ -11,9 +11,3 @@ class Core:
         for string in strings:
             path = os.path.join(path,string)
         return path
-
-'''
-        def greet(*names):
-...     for name in names:
-...         print("Hello", name)
-'''
