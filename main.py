@@ -48,7 +48,6 @@ def writeRankToFile(rank, queue, summonerId):
     path = Core.os_join("tmp",f"{summonerId}.{queue}.rank")
     with open(path, encoding="utf-8", mode="w") as file:
         file.write(rank)
-        print("Path:", file.name)
 
 
 def readRankFromFile(summonerId, queue):
@@ -59,18 +58,78 @@ def readRankFromFile(summonerId, queue):
             return jsonData
     except FileNotFoundError:
         print(f"The rank file for {summonerId}.{queue} doesn't exist yet")
-        os.makedirs(path)
-        return readRankFromFile(summonerId, queue)
+        return None
 
+# Source: https://gist.github.com/kkrypt0nn/a02506f3712ff2d1c8ca7c9e0aed7c06
+# other: https://gist.github.com/matthewzring/9f7bbfd102003963f9be7dbcf7d40e51#masked-links
+def testingDiscordColorsWithBot():
 
-def postToDiscord(discordMessageName, rank, lpDifference):
+    print("testing!")
+
     payload = {
-        "content": (
-            f"{discordMessageName} is now "
-            f"{rank['tier']} {rank['rank']} {rank['lp']} ({lpDifference} lp)"
-        )
+        "content": str(""
+            "```ansi\r\n"
+            "\u001b[1;41mTesting Discord Bot styling\u001b[0m\r\n"
+            "\u001b[1;33mNamingTest\u001b[0m\r\n"
+            "\u001b[1;32mPromoted\u001b[0m\r\n"
+            "\u001b[1;92mPromoted2\u001b[0m\r\n" # not working
+            "\u001b[1;31mDemoted\u001b[0m\r\n"
+            "\u001b[1;91mDemoted2\u001b[0m\r\n" # not working
+            "\u001b[1;36mLP Change\u001b[0m\r\n"
+            "```"
+        "")
     }
 
+    print(payload['content'])
+
+    return payload
+
+
+# TODO make library for coloring/styling all this ...
+def createDiscordMessage(discordMessageName, currentRank, oldRank):
+    (isTierChanged, isRankChanged, isLpChanged) = getRankChanges(oldRank, currentRank)
+
+    summonerMsg = f"\u001b[1;33m{discordMessageName}\u001b[0m is now "
+    message = summonerMsg
+    currentRankMsg = f"{currentRank['tier']} {currentRank['rank']} {currentRank['lp']}"
+    promotedCurrentRankMsg = f"from {oldRank['tier']} {oldRank['rank']} to \u001b[1;32m{currentRankMsg}\u001b[0m"
+    demotedCurrentRankMsg = f"from {oldRank['tier']} {oldRank['rank']} to \u001b[1;31m{currentRankMsg}\u001b[0m"
+
+    if(isTierChanged):
+        isTierPromoted = Enums.LeagueTier[currentRank['tier']].value > Enums.LeagueTier[oldRank['tier']].value
+        if(isTierPromoted):
+            message = f"Congrats {summonerMsg}\u001b[1;32mpromoted\u001b[0m {promotedCurrentRankMsg}"
+        else:
+            message += f"\u001b[1;31mdemoted\u001b[0m {demotedCurrentRankMsg}"
+
+    if(isRankChanged):
+        isRankPromoted = Enums.LeagueRank[currentRank['rank']].value > Enums.LeagueRank[oldRank['rank']].value
+        if(isRankPromoted):
+            message = f"Congrats {summonerMsg}\u001b[1;32mpromoted\u001b[0m {promotedCurrentRankMsg}"
+        else:
+            message += f"\u001b[1;31mdemoted\u001b[0m {demotedCurrentRankMsg}"
+
+    if(isLpChanged and not isTierChanged and not isRankChanged):
+        lpDifference  = calculateLpDifference(oldRank, currentRank)
+        if("-" in lpDifference): # TODO this is so bad but lazy
+            message += f"{currentRankMsg} \u001b[1;35m({lpDifference} lp)\u001b[0m"
+        else:
+            message += f"{currentRankMsg} \u001b[1;36m({lpDifference} lp)\u001b[0m"
+
+    print(message)
+
+    payload = {
+        "content": (""
+            "```ansi\r\n"
+            f"{message}"
+            "```"        
+        "")
+    }
+
+    return payload
+
+
+def postToDiscord(discordMessageName, payload):
     headers = {
         "Content-Type": "application/json"
     }
@@ -118,10 +177,21 @@ def getCurrentRank(riotApiToken, summonerId, queueType):
         print(f"Error making request to riot for {summonerId}")
 
 
+def getRankChanges(oldRank, currentRank): 
+    isTierChanged = Enums.LeagueTier[currentRank['tier']].value != Enums.LeagueTier[oldRank['tier']].value
+    isRankChanged = Enums.LeagueRank[currentRank['rank']].value != Enums.LeagueRank[oldRank['rank']].value
+    isLpChanged = oldRank["lp"] != currentRank["lp"]
+
+    return (isTierChanged, isRankChanged, isLpChanged)
+
+
 def rankChanged(oldRank, currentRank):
     if oldRank is None or currentRank is None:
         return False
-    return oldRank["lp"] != currentRank["lp"]
+
+    (isTierChanged, isRankChanged, isLpChanged) = getRankChanges(oldRank, currentRank)
+
+    return isTierChanged or isRankChanged or isLpChanged
 
 
 def calculateLpDifference(oldRank, currentRank):
@@ -142,8 +212,8 @@ def main(monitored_players):
         currentRank = getCurrentRank(riotApiToken, summonerId, queue)
         writeRankToFile(json.dumps(currentRank), queue, summonerId)
         if rankChanged(oldRank, currentRank):
-            lpDifference = calculateLpDifference(oldRank, currentRank)
-            postToDiscord(discordMessageName, currentRank, lpDifference)
+            dicordMessagePayload = createDiscordMessage(discordMessageName, currentRank, oldRank)
+            postToDiscord(discordMessageName, dicordMessagePayload)
         else:
             print(f"No changes for {discordMessageName} "
                   f"or file wasn't present")
@@ -151,7 +221,7 @@ def main(monitored_players):
 config = load_config()
 riotApiToken = config['riotApiToken']
 
-schedule.every(3).seconds.do(main, config['monitored_players'])
+schedule.every(1).minutes.do(main, config['monitored_players'])
 
 while True:
     schedule.run_pending()
