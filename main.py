@@ -94,23 +94,25 @@ def createDiscordMessage(discordMessageName, currentRank, oldRank):
     currentRankMsg = f"{currentRank['tier']} {currentRank['rank']} {currentRank['lp']}"
     promotedCurrentRankMsg = f"from {oldRank['tier']} {oldRank['rank']} to \u001b[1;32m{currentRankMsg}\u001b[0m"
     demotedCurrentRankMsg = f"from {oldRank['tier']} {oldRank['rank']} to \u001b[1;31m{currentRankMsg}\u001b[0m"
+    
+    lpDifference  = calculateLpDifference(oldRank, currentRank)
+    blueLpDifferenceMsg = "\u001b[1;36m({lpDifference} lp)\u001b[0m"
 
     if(isTierChanged):
         isTierPromoted = Enums.LeagueTier[currentRank['tier']].value > Enums.LeagueTier[oldRank['tier']].value
         if(isTierPromoted):
-            message = f"Congrats {summonerMsg}\u001b[1;32mpromoted\u001b[0m {promotedCurrentRankMsg}"
+            message = f"Congrats {summonerMsg}\u001b[1;32mpromoted\u001b[0m {promotedCurrentRankMsg} {blueLpDifferenceMsg}"
         else:
-            message += f"\u001b[1;31mdemoted\u001b[0m {demotedCurrentRankMsg}"
+            message += f"\u001b[1;31mdemoted\u001b[0m {demotedCurrentRankMsg} {blueLpDifferenceMsg}"
 
     if(isRankChanged):
         isRankPromoted = Enums.LeagueRank[currentRank['rank']].value > Enums.LeagueRank[oldRank['rank']].value
         if(isRankPromoted):
-            message = f"Congrats {summonerMsg}\u001b[1;32mpromoted\u001b[0m {promotedCurrentRankMsg}"
+            message = f"Congrats {summonerMsg}\u001b[1;32mpromoted\u001b[0m {promotedCurrentRankMsg} {blueLpDifferenceMsg}"
         else:
-            message += f"\u001b[1;31mdemoted\u001b[0m {demotedCurrentRankMsg}"
+            message += f"\u001b[1;31mdemoted\u001b[0m {demotedCurrentRankMsg} {blueLpDifferenceMsg}"
 
     if(isLpChanged and not isTierChanged and not isRankChanged):
-        lpDifference  = calculateLpDifference(oldRank, currentRank)
         if("-" in lpDifference): # TODO this is so bad but lazy
             message += f"{currentRankMsg} \u001b[1;35m({lpDifference} lp)\u001b[0m"
         else:

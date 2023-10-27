@@ -2,19 +2,19 @@ from enum import Enum
 
 class Enums:
     class LeagueTier(Enum):
-        IRON  = 1
-        BRONZE  = 2
-        SILVER  = 3
-        GOLD = 4
-        PLATINUM = 5
-        EMERALD = 6
-        DIAMOND = 7
-        MASTER = 8
-        GRANDMASTER = 9
-        CHALLENGER = 10
+        IRON  = 0
+        BRONZE  = 400
+        SILVER  = 800
+        GOLD = 1200
+        PLATINUM = 1600
+        EMERALD = 2000
+        DIAMOND = 2400
+        MASTER = 2800
+        GRANDMASTER = 3200
+        CHALLENGER = 3600
 
     class LeagueRank(Enum):
-        I  = 1
-        II  = 2
-        III  = 3
-        IV = 4 
+        I  = 0
+        II  = 100
+        III  = 200
+        IV = 300
