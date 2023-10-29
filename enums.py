@@ -23,7 +23,7 @@ class Enums:
         RANKED_FLEX_SR = "Flex"
         RANKED_SOLO_5x5 = "Solo"
 
-    class ANISTextColorCode(Enum):
+    class ANSITextColorCode(Enum):
         Gray = 30
         Red = 31
         Green = 32

@@ -6,21 +6,21 @@ class DiscordStyle:
     def __init__(self) -> None:
         pass
     def orangeColor(self,message):
-        return self.__codeToANSIColor(Enums.ANISTextColorCode.Yellow.value,message)
+        return self.__codeToANSIColor(Enums.ANSITextColorCode.Yellow.value,message)
     def greenColor(self,message):
-        return self.__codeToANSIColor(Enums.ANISTextColorCode.Green.value,message)
+        return self.__codeToANSIColor(Enums.ANSITextColorCode.Green.value,message)
     def blueColor(self,message):
-        return self.__codeToANSIColor(Enums.ANISTextColorCode.Blue.value,message)
+        return self.__codeToANSIColor(Enums.ANSITextColorCode.Blue.value,message)
     def lightBlueColor(self,message):
-        return self.__codeToANSIColor(Enums.ANISTextColorCode.Cyan.value,message)
+        return self.__codeToANSIColor(Enums.ANSITextColorCode.Cyan.value,message)
     def redColor(self,message):
-        return self.__codeToANSIColor(Enums.ANISTextColorCode.Red.value,message)
+        return self.__codeToANSIColor(Enums.ANSITextColorCode.Red.value,message)
     def pinkColor(self,message):
-        return self.__codeToANSIColor(Enums.ANISTextColorCode.Pink.value,message)
+        return self.__codeToANSIColor(Enums.ANSITextColorCode.Pink.value,message)
     def grayColor(self,message):
-        return self.__codeToANSIColor(Enums.ANISTextColorCode.Gray.value,message)
+        return self.__codeToANSIColor(Enums.ANSITextColorCode.Gray.value,message)
     def whiteColor(self,message):
-        return self.__codeToANSIColor(Enums.ANISTextColorCode.White.value,message)
+        return self.__codeToANSIColor(Enums.ANSITextColorCode.White.value,message)
     
     def __codeToANSIColor(self,code, message):
         return f"\u001b[1;{code}m{message}\u001b[0m"
