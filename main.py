@@ -13,6 +13,7 @@ from pprint import pprint
 # Local imports
 from enums import Enums
 from core import Core
+from discordStyles import DiscordStyle
 
 Vdebug = False
 
@@ -60,66 +61,51 @@ def readRankFromFile(summonerId, queue):
         print(f"The rank file for {summonerId}.{queue} doesn't exist yet")
         return None
 
-# Source: https://gist.github.com/kkrypt0nn/a02506f3712ff2d1c8ca7c9e0aed7c06
-# other: https://gist.github.com/matthewzring/9f7bbfd102003963f9be7dbcf7d40e51#masked-links
-def testingDiscordColorsWithBot():
 
-    print("testing!")
-
-    payload = {
-        "content": str(""
-            "```ansi\r\n"
-            "\u001b[1;41mTesting Discord Bot styling\u001b[0m\r\n"
-            "\u001b[1;33mNamingTest\u001b[0m\r\n"
-            "\u001b[1;32mPromoted\u001b[0m\r\n"
-            "\u001b[1;92mPromoted2\u001b[0m\r\n" # not working
-            "\u001b[1;31mDemoted\u001b[0m\r\n"
-            "\u001b[1;91mDemoted2\u001b[0m\r\n" # not working
-            "\u001b[1;36mLP Change\u001b[0m\r\n"
-            "```"
-        "")
-    }
-
-    print(payload['content'])
-
-    return payload
-
-
-# TODO make library for coloring/styling all this ...
-def createDiscordMessage(discordMessageName, currentRank, oldRank):
+def createDiscordMessage(currentRank, oldRank):
     (isTierChanged, isRankChanged, isLpChanged) = getRankChanges(oldRank, currentRank)
 
-    summonerMsg = f"\u001b[1;33m{discordMessageName}\u001b[0m is now "
+    ds = DiscordStyle()
+
+    discordMessageName = currentRank['summonersName']
+    queueType = currentRank['queueType']
+
+    queueTypeMsg = f"{ds.grayColor(queueType + ':')}"
+    summonerMsg = ds.orangeColor(discordMessageName)
     message = summonerMsg
+
     currentRankMsg = f"{currentRank['tier']} {currentRank['rank']} {currentRank['lp']}"
-    promotedCurrentRankMsg = f"from {oldRank['tier']} {oldRank['rank']} to \u001b[1;32m{currentRankMsg}\u001b[0m"
-    demotedCurrentRankMsg = f"from {oldRank['tier']} {oldRank['rank']} to \u001b[1;31m{currentRankMsg}\u001b[0m"
-    
+    promotedCurrentRankMsg = f"{ds.greenColor("promoted")} from {oldRank['tier']} {oldRank['rank']} {oldRank['lp']} to {ds.greenColor(currentRankMsg)}"
+    demotedCurrentRankMsg = f"{ds.redColor("demoted")} from {oldRank['tier']} {oldRank['rank']} {oldRank['lp']} to {ds.redColor(currentRankMsg)}"
+
     lpDifference  = calculateLpDifference(oldRank, currentRank)
-    blueLpDifferenceMsg = f"\u001b[1;36m({lpDifference} lp)\u001b[0m"
+    lpDifferenceMsg  = f"({lpDifference} lp)"
+    blueLpDifferenceMsg = ds.lightBlueColor(lpDifferenceMsg)
+    pinkLpDifferenceMsg = ds.pinkColor(lpDifferenceMsg)
+
+    #print("debug:", discordMessageName, (isTierChanged, isRankChanged, isLpChanged))
 
     if(isTierChanged):
         isTierPromoted = Enums.LeagueTier[currentRank['tier']].value > Enums.LeagueTier[oldRank['tier']].value
-        print("isTierPromoted", isTierPromoted)
         if(isTierPromoted):
-            message = f"Congrats {summonerMsg}\u001b[1;32mpromoted\u001b[0m {promotedCurrentRankMsg} {blueLpDifferenceMsg}"
+            message = f"{queueTypeMsg} Congrats {summonerMsg} is now {promotedCurrentRankMsg} {blueLpDifferenceMsg}"
         else:
-            message += f"\u001b[1;31mdemoted\u001b[0m {demotedCurrentRankMsg} {blueLpDifferenceMsg}"
+            message = f"{queueTypeMsg} {summonerMsg} is now {demotedCurrentRankMsg} {pinkLpDifferenceMsg}"
 
-    if(isRankChanged):
+    if(isRankChanged and not isTierChanged):
         isRankPromoted = Enums.LeagueRank[currentRank['rank']].value > Enums.LeagueRank[oldRank['rank']].value
         if(isRankPromoted):
-            message = f"Congrats {summonerMsg}\u001b[1;32mpromoted\u001b[0m {promotedCurrentRankMsg} {blueLpDifferenceMsg}"
+            message = f"{queueTypeMsg} Congrats {summonerMsg} is now {promotedCurrentRankMsg} {blueLpDifferenceMsg}"
         else:
-            message += f"\u001b[1;31mdemoted\u001b[0m {demotedCurrentRankMsg} {blueLpDifferenceMsg}"
+            message = f"{queueTypeMsg} {summonerMsg} is now {demotedCurrentRankMsg} {pinkLpDifferenceMsg}"
 
-    if(isLpChanged and not isTierChanged and not isRankChanged):
+    if(isLpChanged and not (isTierChanged or isRankChanged)):
         if("-" in lpDifference): # TODO this is so bad but lazy
-            message += f"{currentRankMsg} \u001b[1;35m({lpDifference} lp)\u001b[0m"
+            message = f"{queueTypeMsg} {summonerMsg} is now {currentRankMsg} {pinkLpDifferenceMsg}"
         else:
-            message += f"{currentRankMsg} \u001b[1;36m({lpDifference} lp)\u001b[0m"
+            message = f"{queueTypeMsg} {summonerMsg} is now {currentRankMsg} {blueLpDifferenceMsg}"
 
-    #print(message)
+    #print("debug:", message)
 
     payload = {
         "content": (""
@@ -171,6 +157,7 @@ def getCurrentRank(riotApiToken, summonerId, queueType, discordMessageName):
             if queue["queueType"] == queueType:
                 rank = {
                     "summonersName": discordMessageName,
+                    "queueType": Enums.QueueType[queueType].value,
                     "tier": queue["tier"],
                     "rank": queue["rank"],
                     "lp": queue["leaguePoints"]
@@ -216,7 +203,7 @@ def main(monitored_players):
         currentRank = getCurrentRank(riotApiToken, summonerId, queue, discordMessageName)
         writeRankToFile(json.dumps(currentRank), queue, summonerId)
         if rankChanged(oldRank, currentRank):
-            dicordMessagePayload = createDiscordMessage(discordMessageName, currentRank, oldRank)
+            dicordMessagePayload = createDiscordMessage(currentRank, oldRank)
             postToDiscord(discordMessageName, dicordMessagePayload)
         else:
             print(f"No changes for {discordMessageName} "
