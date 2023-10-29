@@ -14,7 +14,7 @@ class Enums:
         CHALLENGER = 3600
 
     class LeagueRank(Enum):
-        I  = 0
-        II  = 100
-        III  = 200
-        IV = 300
+        I  = 300
+        II  = 200
+        III  = 100
+        IV = 0

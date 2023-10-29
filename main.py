@@ -96,10 +96,11 @@ def createDiscordMessage(discordMessageName, currentRank, oldRank):
     demotedCurrentRankMsg = f"from {oldRank['tier']} {oldRank['rank']} to \u001b[1;31m{currentRankMsg}\u001b[0m"
     
     lpDifference  = calculateLpDifference(oldRank, currentRank)
-    blueLpDifferenceMsg = "\u001b[1;36m({lpDifference} lp)\u001b[0m"
+    blueLpDifferenceMsg = f"\u001b[1;36m({lpDifference} lp)\u001b[0m"
 
     if(isTierChanged):
         isTierPromoted = Enums.LeagueTier[currentRank['tier']].value > Enums.LeagueTier[oldRank['tier']].value
+        print("isTierPromoted", isTierPromoted)
         if(isTierPromoted):
             message = f"Congrats {summonerMsg}\u001b[1;32mpromoted\u001b[0m {promotedCurrentRankMsg} {blueLpDifferenceMsg}"
         else:
@@ -118,7 +119,7 @@ def createDiscordMessage(discordMessageName, currentRank, oldRank):
         else:
             message += f"{currentRankMsg} \u001b[1;36m({lpDifference} lp)\u001b[0m"
 
-    print(message)
+    #print(message)
 
     payload = {
         "content": (""
@@ -151,7 +152,7 @@ def postToDiscord(discordMessageName, payload):
         print("Failed to send message. Status code:", response.status_code)
 
 
-def getCurrentRank(riotApiToken, summonerId, queueType):
+def getCurrentRank(riotApiToken, summonerId, queueType, discordMessageName):
     riot_api_url = (
         f"https://euw1.api.riotgames.com/lol/league/v4/entries/by-summoner/"
         f"{summonerId}"
@@ -169,6 +170,7 @@ def getCurrentRank(riotApiToken, summonerId, queueType):
         for queue in data:
             if queue["queueType"] == queueType:
                 rank = {
+                    "summonersName": discordMessageName,
                     "tier": queue["tier"],
                     "rank": queue["rank"],
                     "lp": queue["leaguePoints"]
@@ -211,7 +213,7 @@ def main(monitored_players):
         queue = player['queue']
 
         oldRank = readRankFromFile(summonerId, queue)
-        currentRank = getCurrentRank(riotApiToken, summonerId, queue)
+        currentRank = getCurrentRank(riotApiToken, summonerId, queue, discordMessageName)
         writeRankToFile(json.dumps(currentRank), queue, summonerId)
         if rankChanged(oldRank, currentRank):
             dicordMessagePayload = createDiscordMessage(discordMessageName, currentRank, oldRank)
