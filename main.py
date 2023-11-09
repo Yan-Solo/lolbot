@@ -7,7 +7,7 @@ import schedule
 import sys
 import time
 import yaml
-import os
+import datetime
 
 from pprint import pprint
 # Local imports
@@ -46,13 +46,13 @@ def load_config():
 
 
 def writeRankToFile(rank, queue, summonerId):
-    path = Core.os_join("tmp",f"{summonerId}.{queue}.rank")
+    path = Core.OSJoin("tmp",f"{summonerId}.{queue}.rank")
     with open(path, encoding="utf-8", mode="w") as file:
         file.write(rank)
 
 
 def readRankFromFile(summonerId, queue):
-    path = Core.os_join("tmp",f"{summonerId}.{queue}.rank")
+    path = Core.OSJoin("tmp",f"{summonerId}.{queue}.rank")
     try:
         with open(path, encoding="utf-8", mode="r") as file:
             jsonData = json.loads(file.read())
@@ -62,7 +62,7 @@ def readRankFromFile(summonerId, queue):
         return None
 
 
-def createDiscordMessage(currentRank, oldRank):
+def createDiscordMessage(currentRank, oldRank, matchData):
     (isTierChanged, isRankChanged, isLpChanged) = getRankChanges(oldRank, currentRank)
 
     ds = DiscordStyle()
@@ -105,15 +105,21 @@ def createDiscordMessage(currentRank, oldRank):
         else:
             message = f"{queueTypeMsg} {summonerMsg} is now {currentRankMsg} {blueLpDifferenceMsg}"
 
-    #print("debug:", message)
+    matchInfo1 = f"Duration {ds.blueColor(matchData["gameDuration"])}, {ds.blueColor(matchData["teamPosition"])} as {ds.orangeColor(matchData["championName"])}"
+    matchInfo2 = f"KDA: {ds.blueColor(matchData["KDA"])}, Minion: {ds.blueColor(matchData["totalMinionsKilled"])}, Dmg: {ds.blueColor(matchData["totalDamageDealtToChampions"])}"
 
     payload = {
         "content": (""
             "```ansi\r\n"
-            f"{message}"
+            f"{message}\r\n"
+            f"{ds.grayColor("Match info:")}\r\n\t"
+            f"{matchInfo1} \r\n\t"
+            f"{matchInfo2}"
             "```"        
         "")
     }
+
+    #print("debug:", payload["content"])
 
     return payload
 
@@ -138,22 +144,68 @@ def postToDiscord(discordMessageName, payload):
         print("Failed to send message. Status code:", response.status_code)
 
 
-def getCurrentRank(riotApiToken, summonerId, queueType, discordMessageName):
-    riot_api_url = (
-        f"https://euw1.api.riotgames.com/lol/league/v4/entries/by-summoner/"
-        f"{summonerId}"
-    )
+def getSummonersMatchData(riotApiToken, summonerId, currentRank):
+    puuid = currentRank["puuid"]
 
-    headers = {
-        "X-Riot-Token": f"{riotApiToken}"
-    }
+    ### Get Puuid if not yet found and save it in currentRank
+    if puuid is None or puuid is "":
+        ### Get Summoners puuid if not found from currentRank
+        responseData = Core.getLeagueApiResponse(f"summoner/v4/summoners/{summonerId}", riotApiToken)
+        puuid = responseData["puuid"]
+        currentRank["puuid"] = puuid
+   
+    ### Get summoners matches by puuid, returns list of match ids
+    responseData = Core.getLeagueApiResponse(f"match/v5/matches/by-puuid/{puuid}/ids", riotApiToken, queryParameters="?start=0&count=1", region="europe")
 
-    response = requests.get(riot_api_url, headers=headers)
+    ### Get match information
+    latestMatchId = responseData[0]
+    responseData = Core.getLeagueApiResponse(f"match/v5/matches/{latestMatchId}", riotApiToken, region="europe")
 
-    if response.status_code == 200:
-        data = response.json()
+    ### parse data from match response
+    matchInfo = responseData["info"]
+    matchDuration = matchInfo["gameDuration"]
+    matchDurationStr = str(datetime.timedelta(seconds=int(matchDuration)))
+    matchParticipants = matchInfo["participants"]
 
-        for queue in data:
+    if (participant := GetParticipantsByPuuid(matchParticipants, puuid)) is not None:
+        teamPosition = participant["teamPosition"]
+        championName = participant["championName"]
+        deaths = participant["deaths"]
+        assists = participant["assists"]
+        kills = participant["kills"]
+        totalDamageDealtToChampions = participant["totalDamageDealtToChampions"]
+        totalMinionsKilled = participant["totalMinionsKilled"]
+
+    matchData = {
+                    "gameDuration": matchDurationStr,
+                    "championName": championName,
+                    "teamPosition": teamPosition,
+                    "KDA": f"{kills}/{deaths}/{assists}",
+                    "totalDamageDealtToChampions": totalDamageDealtToChampions,
+                    "totalMinionsKilled": totalMinionsKilled,
+                }
+
+    return matchData
+
+def GetParticipantsByPuuid(matchParticipants, puuid):
+    for participant in matchParticipants:
+        if participant["puuid"] == puuid:
+            return participant
+        
+    return None
+
+
+def getCurrentRank(riotApiToken, summonerId, queueType, discordMessageName, oldRank):
+    responseData = Core.getLeagueApiResponse(f"league/v4/entries/by-summoner/{summonerId}", riotApiToken)
+    puuid = None
+
+    try:
+        puuid = oldRank["puuid"]
+    except:
+        pass
+
+    if responseData is not None:
+        for queue in responseData:
             if queue["queueType"] == queueType:
                 rank = {
                     "summonersName": discordMessageName,
@@ -162,10 +214,11 @@ def getCurrentRank(riotApiToken, summonerId, queueType, discordMessageName):
                     "rank": queue["rank"],
                     "lp": queue["leaguePoints"]
                 }
+                rank["puuid"] = "" if puuid is None else puuid
                 return rank
-
     else:
-        print(f"Error making request to riot for {summonerId}")
+        return None
+        
 
 
 def getRankChanges(oldRank, currentRank): 
@@ -200,19 +253,23 @@ def main(monitored_players):
         queue = player['queue']
 
         oldRank = readRankFromFile(summonerId, queue)
-        currentRank = getCurrentRank(riotApiToken, summonerId, queue, discordMessageName)
-        writeRankToFile(json.dumps(currentRank), queue, summonerId)
-        if rankChanged(oldRank, currentRank):
-            dicordMessagePayload = createDiscordMessage(currentRank, oldRank)
-            postToDiscord(discordMessageName, dicordMessagePayload)
-        else:
-            print(f"No changes for {discordMessageName} "
-                  f"or file wasn't present")
+        currentRank = getCurrentRank(riotApiToken, summonerId, queue, discordMessageName, oldRank)
+        if currentRank is not None:
+            if rankChanged(oldRank, currentRank):
+                matchData = getSummonersMatchData(riotApiToken,summonerId, currentRank)
+                dicordMessagePayload = createDiscordMessage(currentRank, oldRank, matchData)
+                postToDiscord(discordMessageName, dicordMessagePayload)
+            else:
+                print(f"No changes for {discordMessageName} "
+                    f"or file wasn't present")
+            
+            writeRankToFile(json.dumps(currentRank), queue, summonerId)
 
 config = load_config()
 riotApiToken = config['riotApiToken']
 
 schedule.every(1).minutes.do(main, config['monitored_players'])
+#schedule.every(10).seconds.do(main, config['monitored_players'])
 
 while True:
     schedule.run_pending()
