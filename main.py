@@ -74,9 +74,9 @@ def createDiscordMessage(currentRank, oldRank, matchData):
     summonerMsg = ds.orangeColor(discordMessageName)
     message = summonerMsg
 
-    currentRankMsg = f"{currentRank['tier']} {currentRank['rank']} {currentRank['lp']}"
-    promotedCurrentRankMsg = f"{ds.greenColor("promoted")} from {oldRank['tier']} {oldRank['rank']} {oldRank['lp']} to {ds.greenColor(currentRankMsg)}"
-    demotedCurrentRankMsg = f"{ds.redColor("demoted")} from {oldRank['tier']} {oldRank['rank']} {oldRank['lp']} to {ds.redColor(currentRankMsg)}"
+    currentRankMsg = f"{currentRank['tier']} {currentRank['rank']} {currentRank['lp']} lp"
+    promotedCurrentRankMsg = f"{ds.greenColor("promoted")} from {oldRank['tier']} {oldRank['rank']} {oldRank['lp']} lp to {ds.greenColor(currentRankMsg)}"
+    demotedCurrentRankMsg = f"{ds.redColor("demoted")} from {oldRank['tier']} {oldRank['rank']} {oldRank['lp']} lp to {ds.redColor(currentRankMsg)}"
 
     lpDifference  = calculateLpDifference(oldRank, currentRank)
     lpDifferenceMsg  = f"({lpDifference} lp)"
