@@ -1,0 +1,30 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  REPOSITORY_OWNER: yan-solo
+  DOCKER_IMAGE_NAME: lolbot
+  GHCR_REGISTRY: ghcr.io
+  DOCKERFILE_PATH: ./Dockerfile
+  DOCKER_BUILD_CONTEXT: .
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Login to GitHub Container Registry
+        run: echo "${{ secrets.TOKEN }}" | docker login ${GHCR_REGISTRY} -u ${{ github.actor }} --password-stdin
+
+      - name: Build Docker image
+        run: docker build -t ${GHCR_REGISTRY}/${REPOSITORY_OWNER}/${DOCKER_IMAGE_NAME}/${DOCKER_IMAGE_NAME}:${{ github.sha }} -t ${GHCR_REGISTRY}/${REPOSITORY_OWNER}/${DOCKER_IMAGE_NAME}/${DOCKER_IMAGE_NAME}:latest ${DOCKER_BUILD_CONTEXT} -f ${DOCKERFILE_PATH}
+        
+      - name: Push Docker image
+        run: docker push ${GHCR_REGISTRY}/${REPOSITORY_OWNER}/${DOCKER_IMAGE_NAME}/${DOCKER_IMAGE_NAME}:${{ github.sha }} && docker push ${GHCR_REGISTRY}/${REPOSITORY_OWNER}/${DOCKER_IMAGE_NAME}/${DOCKER_IMAGE_NAME}:latest
