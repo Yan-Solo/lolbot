@@ -32,21 +32,3 @@ class Enums:
         Pink = 35
         Cyan = 36 # lightblue
         White = 37
-
-    class TeamPosition(Enum):
-        TOP = "Top"
-        JUNGLE = "Jungle"
-        MIDDLE = "Mid"
-        BOTTOM = "ADC"
-        UTILITY = "Support"
-        UNKNOWN  = "Unknown"
-
-    class SummonerId(Enum):
-        Piet = "NaK9nxywCB-yR_X6_nR3lSMvwZUUe59vi2Tq5hH8v1z_sCw"
-        Dieter = "si-atm7MwA9WJjRg7_kf3H-mWpdCE3m-NJqh5Uup19gjf6Y"
-        Michael = "92xv3Ev8DrF6yoUM25v0kGzJ9PKSOd7V9tbVwgpYG1gORJA"
-        Simon = "Hvq6N0p5YzfeE3L23EwLSoEC-BJDzvF6sXzGHP1F_VHbnO0"
-        Andres = "Z-zwIwHVdSvXvtUqmyisNXiIsABbzpPAmbKwSWuNyv8uqhA"
-        AndresAlt = "HnH7csTpBP8voC0fiJMwTmndTFfOYqnVMpmOP6LC3uLLQFdqLbOPxyGjbw"
-        Benjamin = "qcUxUydGzk42nq7IW9MrvxT4DKv9D2r1xB3_Gk4Klyd-VsY"
-        Dries = "Da36I4f-iKkpyrd6Vd5xIPDML7CUUBHzB1X25y5bzekllIFn"
