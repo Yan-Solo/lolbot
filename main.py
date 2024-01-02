@@ -8,7 +8,6 @@ import sys
 import time
 import yaml
 import datetime
-from datetime import datetime as datetime2
 
 from pprint import pprint
 # Local imports
@@ -106,24 +105,16 @@ def createDiscordMessage(currentRank, oldRank, matchData):
         else:
             message = f"{queueTypeMsg} {summonerMsg} is now {currentRankMsg} {blueLpDifferenceMsg}"
 
-    ### MatchData["gameDuration"] is string in format "%H:%M:%S"
-    ### Get minutes if under 18 min show FF15 message
-    ff15 = datetime2.strptime(matchData["gameDuration"], '%H:%M:%S').minute < 18
-    ff15Msg = "ff15, " if ff15 is True else ""
-
     matchInfo1 = f"Duration {ds.blueColor(matchData["gameDuration"])}, {ds.blueColor(matchData["teamPosition"])} as {ds.orangeColor(matchData["championName"])}"
-    matchInfo2 = f"KDA: {ds.blueColor(matchData["KDA"])}"
-
-    ### If Michael show Dmg
-    matchInfoDmg = f"Dmg: {ds.blueColor(matchData["totalDamageDealtToChampions"])}" if matchData["summonerId"] == Enums.SummonerId.Michael.value else ""
-
-    matchInfo = f"{ff15Msg}{matchInfo1} {matchInfo2} {matchInfoDmg}"
+    matchInfo2 = f"KDA: {ds.blueColor(matchData["KDA"])}, Minion: {ds.blueColor(matchData["totalMinionsKilled"])}, Dmg: {ds.blueColor(matchData["totalDamageDealtToChampions"])}"
 
     payload = {
         "content": (""
             "```ansi\r\n"
             f"{message}\r\n"
-            f"{ds.grayColor("Match info:")} {matchInfo}"
+            f"{ds.grayColor("Match info:")}\r\n\t"
+            f"{matchInfo1} \r\n\t"
+            f"{matchInfo2}"
             "```"        
         "")
     }
@@ -177,23 +168,21 @@ def getSummonersMatchData(riotApiToken, summonerId, currentRank):
     matchParticipants = matchInfo["participants"]
 
     if (participant := GetParticipantsByPuuid(matchParticipants, puuid)) is not None:
-        teamPosition = participant["teamPosition"] if participant["teamPosition"] is not "" else participant["lane"]
-        championName = participant["championName"] 
+        teamPosition = participant["teamPosition"]
+        championName = participant["championName"]
         deaths = participant["deaths"]
         assists = participant["assists"]
         kills = participant["kills"]
         totalDamageDealtToChampions = participant["totalDamageDealtToChampions"]
         totalMinionsKilled = participant["totalMinionsKilled"]
-        summonerId = participant["summonerId"]
 
     matchData = {
                     "gameDuration": matchDurationStr,
                     "championName": championName,
-                    "teamPosition": Enums.TeamPosition[teamPosition].value,
+                    "teamPosition": teamPosition,
                     "KDA": f"{kills}/{deaths}/{assists}",
                     "totalDamageDealtToChampions": totalDamageDealtToChampions,
                     "totalMinionsKilled": totalMinionsKilled,
-                    "summonerId": summonerId
                 }
 
     return matchData
