@@ -157,7 +157,7 @@ def getSummonersMatchData(riotApiToken, summonerId, currentRank):
     puuid = currentRank["puuid"]
 
     ### Get Puuid if not yet found and save it in currentRank
-    if puuid is None or puuid is "":
+    if puuid == None or puuid  == "":
         ### Get Summoners puuid if not found from currentRank
         responseData = Core.getLeagueApiResponse(f"summoner/v4/summoners/{summonerId}", riotApiToken)
         puuid = responseData["puuid"]
@@ -177,7 +177,7 @@ def getSummonersMatchData(riotApiToken, summonerId, currentRank):
     matchParticipants = matchInfo["participants"]
 
     if (participant := GetParticipantsByPuuid(matchParticipants, puuid)) is not None:
-        teamPosition = participant["teamPosition"] if participant["teamPosition"] is not "" else participant["lane"]
+        teamPosition = participant["teamPosition"] if participant["teamPosition"] != "" else participant["lane"]
         championName = participant["championName"] 
         deaths = participant["deaths"]
         assists = participant["assists"]
